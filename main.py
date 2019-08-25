@@ -5,8 +5,11 @@ from PIL import Image
 import matplotlib.pyplot as plt
 
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
 from torch.autograd import grad
-from torchvision import datasets
+from torchvision import datasets, transforms
 import torchvision.datasets.utils as dataset_utils
 
 
@@ -32,7 +35,7 @@ class ColoredMNIST(datasets.VisionDataset):
 
   Args:
     root (string): Root directory of dataset where ``ColoredMNIST/*.pt`` will exist.
-    env (string): Which environment to load. Must be 1 of 'train1', 'train2', or 'test'.
+    env (string): Which environment to load. Must be 1 of 'train1', 'train2', 'test', or 'all_train'.
     transform (callable, optional): A function/transform that  takes in an PIL image
       and returns a transformed version. E.g, ``transforms.RandomCrop``
     target_transform (callable, optional): A function/transform that takes in the
@@ -43,7 +46,13 @@ class ColoredMNIST(datasets.VisionDataset):
                                 target_transform=target_transform)
 
     self.prepare_colored_mnist()
-    self.data_label_tuples = torch.load(os.path.join(self.root, 'ColoredMNIST', env) + '.pt')
+    if env in ['train1', 'train2', 'test']:
+      self.data_label_tuples = torch.load(os.path.join(self.root, 'ColoredMNIST', env) + '.pt')
+    elif env == 'all_train':
+      self.data_label_tuples = torch.load(os.path.join(self.root, 'ColoredMNIST', 'train1.pt')) + \
+                               torch.load(os.path.join(self.root, 'ColoredMNIST', 'train2.pt'))
+    else:
+      raise RuntimeError(f'{env} env unknown. Valid envs are train1, train2, test, and all_train')
 
   def __getitem__(self, index):
     """
@@ -132,11 +141,27 @@ class ColoredMNIST(datasets.VisionDataset):
     torch.save(test_set, os.path.join(colored_mnist_dir, 'test.pt'))
 
 
+class Net(nn.Module):
+  def __init__(self):
+    super(Net, self).__init__()
+    self.fc1 = nn.Linear(3 * 28 * 28, 1000)
+    self.fc2 = nn.Linear(1000, 250)
+    self.fc3 = nn.Linear(250, 1)
+
+  def forward(self, x):
+    x = x.view(-1, 3 * 28 * 28)
+    x = F.relu(self.fc1(x))
+    x = F.relu(self.fc2(x))
+    logits = self.fc3(x)
+    return logits
+
+
 def main():
   train_1_dataset = ColoredMNIST(root='./data', env='train1')
   train_2_dataset = ColoredMNIST(root='./data', env='train2')
+  all_train_dataset = ColoredMNIST(root='./data', env='all_train')
   test_dataset = ColoredMNIST(root='./data', env='test')
-  print(len(train_1_dataset), len(train_2_dataset), len(test_dataset))
+  print(len(train_1_dataset), len(train_2_dataset), len(all_train_dataset), len(test_dataset))
   plt.imshow(np.array(train_1_dataset[0][0]))
   plt.show()
   plt.imshow(np.array(train_2_dataset[0][0]))
