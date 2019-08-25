@@ -1,10 +1,12 @@
+import os
+
+import numpy as np
+from PIL import Image
+
 import torch
 from torch.autograd import grad
 from torchvision import datasets
-
-import numpy as np
-import matplotlib.pyplot as plt
-from PIL import Image
+import torchvision.datasets.utils as dataset_utils
 
 
 def color_grayscale_arr(arr, red=True):
@@ -23,16 +25,24 @@ def color_grayscale_arr(arr, red=True):
   return arr
 
 
-def prepare_colored_mnist():
-  train_mnist = datasets.mnist.MNIST('./data', train=True, download=True)
-  print(len(train_mnist))
+def prepare_colored_mnist(root='./data'):
+  """Prepares colored MNIST dataset using procedure from https://arxiv.org/pdf/1907.02893.pdf"""
+  colored_mnist_dir = os.path.join(root,'ColoredMNIST')
+  if os.path.exists(os.path.join(colored_mnist_dir, 'train1.pt')) \
+      and os.path.exists(os.path.join(colored_mnist_dir, 'train2.pt')) \
+      and os.path.exists(os.path.join(colored_mnist_dir, 'test.pt')):
+    print('Colored MNIST dataset already exists')
+    return
+
+  print('Preparing Colored MNIST')
+  train_mnist = datasets.mnist.MNIST(root, train=True, download=True)
 
   train1_set = []
   train2_set = []
   test_set = []
   for idx, (im, label) in enumerate(train_mnist):
     if idx % 10000 == 0:
-      print(f'Converting image {idx}')
+      print(f'Converting image {idx}/{len(train_mnist)}')
     im_array = np.array(im)
 
     # Assign a binary label y to the image based on the digit
@@ -68,17 +78,18 @@ def prepare_colored_mnist():
     else:
       test_set.append((Image.fromarray(colored_arr), binary_label))
 
-    print('original label', type(label), label)
-    print('binary label', binary_label)
-    print('assigned color', 'red' if color_red else 'green')
-    plt.imshow(colored_arr)
-    plt.show()
+    # Debug
+    #print('original label', type(label), label)
+    #print('binary label', binary_label)
+    #print('assigned color', 'red' if color_red else 'green')
+    #plt.imshow(colored_arr)
+    #plt.show()
+    #break
 
-    break
-
-  torch.save(train1_set, './data/ColoredMNIST/train1.pt')
-  torch.save(train2_set, './data/ColoredMNIST/train2.pt')
-  torch.save(test_set, './data/ColoredMNIST/test.pt')
+  dataset_utils.makedir_exist_ok(colored_mnist_dir)
+  torch.save(train1_set, os.path.join(colored_mnist_dir, 'train1.pt'))
+  torch.save(train2_set, os.path.join(colored_mnist_dir, 'train2.pt'))
+  torch.save(test_set, os.path.join(colored_mnist_dir, 'test.pt'))
 
 
 def main():
