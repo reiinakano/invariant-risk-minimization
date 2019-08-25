@@ -159,7 +159,7 @@ class Net(nn.Module):
 class ConvNet(nn.Module):
   def __init__(self):
     super(ConvNet, self).__init__()
-    self.conv1 = nn.Conv2d(1, 20, 5, 1)
+    self.conv1 = nn.Conv2d(3, 20, 5, 1)
     self.conv2 = nn.Conv2d(20, 50, 5, 1)
     self.fc1 = nn.Linear(4 * 4 * 50, 500)
     self.fc2 = nn.Linear(500, 1)
@@ -238,7 +238,7 @@ def irm_train(model, device, train_loaders, optimizer, epoch):
       loss_erm = F.binary_cross_entropy_with_logits(output * dummy_w, target, reduction='none')
       penalty += compute_penalty(loss_erm, dummy_w)
       error += loss_erm.mean()
-    (1e-5 * error + 1e2 * penalty).backward()
+    (1e-5 * error + penalty).backward()
     optimizer.step()
     if batch_idx % 10 == 0:
       print('Train Epoch: {} [{}/{} ({:.0f}%)]\tERM loss: {:.6f}\tGrad penalty: {:.6f}'.format(
@@ -276,7 +276,7 @@ def train_and_test_irm():
     ])),
     batch_size=1000, shuffle=True, **kwargs)
 
-  model = Net().to(device)
+  model = ConvNet().to(device)
   optimizer = optim.Adam(model.parameters(), lr=0.01)
 
   for epoch in range(1, 10):
