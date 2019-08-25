@@ -201,6 +201,8 @@ def compute_penalty(losses, dummy):
 def irm_train(model, device, train_loaders, optimizer, epoch):
   model.train()
 
+  train_loaders = [iter(x) for x in train_loaders]
+
   dummy_w = torch.nn.Parameter(torch.Tensor([1.0]))
 
   batch_idx = 0
@@ -221,8 +223,8 @@ def irm_train(model, device, train_loaders, optimizer, epoch):
     optimizer.step()
     if batch_idx % 10 == 0:
       print('Train Epoch: {} [{}/{} ({:.0f}%)]\tERM loss: {:.6f}\tGrad penalty: {:.6f}'.format(
-        epoch, batch_idx * len(data), len(loader[0].dataset),
-               100. * batch_idx / len(loader[0]), error.item(), penalty.item()))
+        epoch, batch_idx * len(data), len(train_loaders[0].dataset),
+               100. * batch_idx / len(train_loaders[0]), error.item(), penalty.item()))
 
     batch_idx += 1
 
@@ -260,8 +262,10 @@ def train_and_test_irm():
 
   for epoch in range(1, 10):
     irm_train(model, device, [train1_loader, train2_loader], optimizer, epoch)
-    print('testing on train set')
+    print('testing on train1 set')
     test(model, device, train1_loader)
+    print('testing on train2 set')
+    test(model, device, train2_loader)
     print('testing on test set')
     test(model, device, test_loader)
 
