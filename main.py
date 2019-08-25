@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 from PIL import Image
+import matplotlib.pyplot as plt
 
 import torch
 from torch.autograd import grad
@@ -25,75 +26,123 @@ def color_grayscale_arr(arr, red=True):
   return arr
 
 
-def prepare_colored_mnist(root='./data'):
-  """Prepares colored MNIST dataset using procedure from https://arxiv.org/pdf/1907.02893.pdf"""
-  colored_mnist_dir = os.path.join(root,'ColoredMNIST')
-  if os.path.exists(os.path.join(colored_mnist_dir, 'train1.pt')) \
-      and os.path.exists(os.path.join(colored_mnist_dir, 'train2.pt')) \
-      and os.path.exists(os.path.join(colored_mnist_dir, 'test.pt')):
-    print('Colored MNIST dataset already exists')
-    return
+class ColoredMNIST(datasets.VisionDataset):
+  """
+  Colored MNIST dataset for testing IRM. Prepared using procedure from https://arxiv.org/pdf/1907.02893.pdf
 
-  print('Preparing Colored MNIST')
-  train_mnist = datasets.mnist.MNIST(root, train=True, download=True)
+  Args:
+    root (string): Root directory of dataset where ``ColoredMNIST/*.pt`` will exist.
+    env (string): Which environment to load. Must be 1 of 'train1', 'train2', or 'test'.
+    transform (callable, optional): A function/transform that  takes in an PIL image
+      and returns a transformed version. E.g, ``transforms.RandomCrop``
+    target_transform (callable, optional): A function/transform that takes in the
+      target and transforms it.
+  """
+  def __init__(self, root='./data', env='train1', transform=None, target_transform=None):
+    super(ColoredMNIST, self).__init__(root, transform=transform,
+                                target_transform=target_transform)
 
-  train1_set = []
-  train2_set = []
-  test_set = []
-  for idx, (im, label) in enumerate(train_mnist):
-    if idx % 10000 == 0:
-      print(f'Converting image {idx}/{len(train_mnist)}')
-    im_array = np.array(im)
+    self.prepare_colored_mnist()
+    self.data_label_tuples = torch.load(os.path.join(self.root, 'ColoredMNIST', env) + '.pt')
 
-    # Assign a binary label y to the image based on the digit
-    binary_label = 0 if label < 5 else 1
+  def __getitem__(self, index):
+    """
+    Args:
+        index (int): Index
 
-    # Flip label with 25% probability
-    if np.random.uniform() < 0.25:
-      binary_label = binary_label ^ 1
+    Returns:
+        tuple: (image, target) where target is index of the target class.
+    """
+    img, target = self.data_label_tuples[index]
 
-    # Color the image either red or green according to its possibly flipped label
-    color_red = binary_label == 0
+    if self.transform is not None:
+      img = self.transform(img)
 
-    # Flip the color with a probability e that depends on the environment
-    if idx < 20000:
-      # 20% in the first training environment
-      if np.random.uniform() < 0.2:
-        color_red = not color_red
-    elif idx < 40000:
-      # 10% in the first training environment
-      if np.random.uniform() < 0.1:
-        color_red = not color_red
-    else:
-      # 90% in the test environment
-      if np.random.uniform() < 0.9:
-        color_red = not color_red
+    if self.target_transform is not None:
+      target = self.target_transform(target)
 
-    colored_arr = color_grayscale_arr(im_array, red=color_red)
+    return img, target
 
-    if idx < 20000:
-      train1_set.append((Image.fromarray(colored_arr), binary_label))
-    elif idx < 40000:
-      train2_set.append((Image.fromarray(colored_arr), binary_label))
-    else:
-      test_set.append((Image.fromarray(colored_arr), binary_label))
+  def __len__(self):
+    return len(self.data_label_tuples)
 
-    # Debug
-    #print('original label', type(label), label)
-    #print('binary label', binary_label)
-    #print('assigned color', 'red' if color_red else 'green')
-    #plt.imshow(colored_arr)
-    #plt.show()
-    #break
+  def prepare_colored_mnist(self):
+    colored_mnist_dir = os.path.join(self.root, 'ColoredMNIST')
+    if os.path.exists(os.path.join(colored_mnist_dir, 'train1.pt')) \
+        and os.path.exists(os.path.join(colored_mnist_dir, 'train2.pt')) \
+        and os.path.exists(os.path.join(colored_mnist_dir, 'test.pt')):
+      print('Colored MNIST dataset already exists')
+      return
 
-  dataset_utils.makedir_exist_ok(colored_mnist_dir)
-  torch.save(train1_set, os.path.join(colored_mnist_dir, 'train1.pt'))
-  torch.save(train2_set, os.path.join(colored_mnist_dir, 'train2.pt'))
-  torch.save(test_set, os.path.join(colored_mnist_dir, 'test.pt'))
+    print('Preparing Colored MNIST')
+    train_mnist = datasets.mnist.MNIST(self.root, train=True, download=True)
+
+    train1_set = []
+    train2_set = []
+    test_set = []
+    for idx, (im, label) in enumerate(train_mnist):
+      if idx % 10000 == 0:
+        print(f'Converting image {idx}/{len(train_mnist)}')
+      im_array = np.array(im)
+
+      # Assign a binary label y to the image based on the digit
+      binary_label = 0 if label < 5 else 1
+
+      # Flip label with 25% probability
+      if np.random.uniform() < 0.25:
+        binary_label = binary_label ^ 1
+
+      # Color the image either red or green according to its possibly flipped label
+      color_red = binary_label == 0
+
+      # Flip the color with a probability e that depends on the environment
+      if idx < 20000:
+        # 20% in the first training environment
+        if np.random.uniform() < 0.2:
+          color_red = not color_red
+      elif idx < 40000:
+        # 10% in the first training environment
+        if np.random.uniform() < 0.1:
+          color_red = not color_red
+      else:
+        # 90% in the test environment
+        if np.random.uniform() < 0.9:
+          color_red = not color_red
+
+      colored_arr = color_grayscale_arr(im_array, red=color_red)
+
+      if idx < 20000:
+        train1_set.append((Image.fromarray(colored_arr), binary_label))
+      elif idx < 40000:
+        train2_set.append((Image.fromarray(colored_arr), binary_label))
+      else:
+        test_set.append((Image.fromarray(colored_arr), binary_label))
+
+      # Debug
+      # print('original label', type(label), label)
+      # print('binary label', binary_label)
+      # print('assigned color', 'red' if color_red else 'green')
+      # plt.imshow(colored_arr)
+      # plt.show()
+      # break
+
+    dataset_utils.makedir_exist_ok(colored_mnist_dir)
+    torch.save(train1_set, os.path.join(colored_mnist_dir, 'train1.pt'))
+    torch.save(train2_set, os.path.join(colored_mnist_dir, 'train2.pt'))
+    torch.save(test_set, os.path.join(colored_mnist_dir, 'test.pt'))
 
 
 def main():
-  prepare_colored_mnist()
+  train_1_dataset = ColoredMNIST(root='./data', env='train1')
+  train_2_dataset = ColoredMNIST(root='./data', env='train2')
+  test_dataset = ColoredMNIST(root='./data', env='test')
+  print(len(train_1_dataset), len(train_2_dataset), len(test_dataset))
+  plt.imshow(np.array(train_1_dataset[0][0]))
+  plt.show()
+  plt.imshow(np.array(train_2_dataset[0][0]))
+  plt.show()
+  plt.imshow(np.array(test_dataset[0][0]))
+  plt.show()
 
 
 if __name__ == '__main__':
