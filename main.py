@@ -152,22 +152,89 @@ class Net(nn.Module):
     x = x.view(-1, 3 * 28 * 28)
     x = F.relu(self.fc1(x))
     x = F.relu(self.fc2(x))
-    logits = self.fc3(x)
+    logits = self.fc3(x).flatten()
     return logits
 
 
+def erm_train(model, device, train_loader, optimizer, epoch):
+  model.train()
+  for batch_idx, (data, target) in enumerate(train_loader):
+    data, target = data.to(device), target.to(device).float()
+    optimizer.zero_grad()
+    output = model(data)
+    loss = F.binary_cross_entropy_with_logits(output, target)
+    loss.backward()
+    optimizer.step()
+    if batch_idx % 10 == 0:
+      print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+        epoch, batch_idx * len(data), len(train_loader.dataset),
+               100. * batch_idx / len(train_loader), loss.item()))
+
+
+def test(model, device, test_loader):
+  model.eval()
+  test_loss = 0
+  correct = 0
+  with torch.no_grad():
+    for data, target in test_loader:
+      data, target = data.to(device), target.to(device).float()
+      output = model(data)
+      test_loss += F.binary_cross_entropy_with_logits(output, target, reduction='sum').item()  # sum up batch loss
+      pred = torch.where(torch.gt(output, torch.Tensor([0.0]).to(device)),
+                         torch.Tensor([1.0]).to(device),
+                         torch.Tensor([0.0]).to(device))  # get the index of the max log-probability
+      correct += pred.eq(target.view_as(pred)).sum().item()
+
+  test_loss /= len(test_loader.dataset)
+
+  print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+    test_loss, correct, len(test_loader.dataset),
+    100. * correct / len(test_loader.dataset)))
+
+
 def main():
-  train_1_dataset = ColoredMNIST(root='./data', env='train1')
-  train_2_dataset = ColoredMNIST(root='./data', env='train2')
-  all_train_dataset = ColoredMNIST(root='./data', env='all_train')
-  test_dataset = ColoredMNIST(root='./data', env='test')
-  print(len(train_1_dataset), len(train_2_dataset), len(all_train_dataset), len(test_dataset))
-  plt.imshow(np.array(train_1_dataset[0][0]))
-  plt.show()
-  plt.imshow(np.array(train_2_dataset[0][0]))
-  plt.show()
-  plt.imshow(np.array(test_dataset[0][0]))
-  plt.show()
+  use_cuda = torch.cuda.is_available()
+  device = torch.device("cuda" if use_cuda else "cpu")
+
+  #train_1_dataset = ColoredMNIST(root='./data', env='train1')
+  #train_2_dataset = ColoredMNIST(root='./data', env='train2')
+  #all_train_dataset = ColoredMNIST(root='./data', env='all_train')
+  #test_dataset = ColoredMNIST(root='./data', env='test')
+
+  # Debug
+  #print(len(train_1_dataset), len(train_2_dataset), len(all_train_dataset), len(test_dataset))
+  #plt.imshow(np.array(train_1_dataset[0][0]))
+  #plt.show()
+  #plt.imshow(np.array(train_2_dataset[0][0]))
+  #plt.show()
+  #plt.imshow(np.array(test_dataset[0][0]))
+  #plt.show()
+
+  kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
+  all_train_loader = torch.utils.data.DataLoader(
+    ColoredMNIST(root='./data', env='all_train',
+                 transform=transforms.Compose([
+                     transforms.ToTensor(),
+                     transforms.Normalize((0.1307, 0.1307, 0.), (0.3081, 0.3081, 0.3081))
+                   ])),
+    batch_size=64, shuffle=True, **kwargs)
+
+  test_loader = torch.utils.data.DataLoader(
+    ColoredMNIST(root='./data', env='test', transform=transforms.Compose([
+      transforms.ToTensor(),
+      transforms.Normalize((0.1307, 0.1307, 0.), (0.3081, 0.3081, 0.3081))
+    ])),
+    batch_size=1000, shuffle=True, **kwargs)
+
+  model = Net().to(device)
+  optimizer = optim.Adam(model.parameters(), lr=0.01)
+
+  for epoch in range(1, 10):
+    erm_train(model, device, all_train_loader, optimizer, epoch)
+    print('testing on train set')
+    test(model, device, all_train_loader)
+    print('testing on test set')
+    test(model, device, test_loader)
 
 
 if __name__ == '__main__':
