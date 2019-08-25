@@ -192,23 +192,83 @@ def test(model, device, test_loader):
     100. * correct / len(test_loader.dataset)))
 
 
-def main():
+def compute_penalty(losses, dummy):
+  g1 = grad(losses[0::2].mean(), dummy, create_graph=True)[0]
+  g2 = grad(losses[1::2].mean(), dummy, create_graph=True)[0]
+  return (g1 * g2).sum()
+
+
+def irm_train(model, device, train_loaders, optimizer, epoch):
+  model.train()
+
+  dummy_w = torch.nn.Parameter(torch.Tensor([1.0]))
+
+  batch_idx = 0
+  while True:
+    optimizer.zero_grad()
+    error = 0
+    penalty = 0
+    for loader in train_loaders:
+      data, target = next(loader, (None, None))
+      if data is None:
+        return
+      data, target = data.to(device), target.to(device).float()
+      output = model(data)
+      loss_erm = F.binary_cross_entropy_with_logits(output * dummy_w, target, reduction='none')
+      penalty += compute_penalty(loss_erm, dummy_w)
+      error += loss_erm.mean()
+    (1e-5 * error + penalty).backward()
+    optimizer.step()
+    if batch_idx % 10 == 0:
+      print('Train Epoch: {} [{}/{} ({:.0f}%)]\tERM loss: {:.6f}\tGrad penalty: {:.6f}'.format(
+        epoch, batch_idx * len(data), len(loader[0].dataset),
+               100. * batch_idx / len(loader[0]), error.item(), penalty.item()))
+
+    batch_idx += 1
+
+
+def train_and_test_irm():
   use_cuda = torch.cuda.is_available()
   device = torch.device("cuda" if use_cuda else "cpu")
 
-  #train_1_dataset = ColoredMNIST(root='./data', env='train1')
-  #train_2_dataset = ColoredMNIST(root='./data', env='train2')
-  #all_train_dataset = ColoredMNIST(root='./data', env='all_train')
-  #test_dataset = ColoredMNIST(root='./data', env='test')
+  kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
+  train1_loader = torch.utils.data.DataLoader(
+    ColoredMNIST(root='./data', env='train1',
+                 transform=transforms.Compose([
+                     transforms.ToTensor(),
+                     transforms.Normalize((0.1307, 0.1307, 0.), (0.3081, 0.3081, 0.3081))
+                   ])),
+    batch_size=64, shuffle=True, **kwargs)
 
-  # Debug
-  #print(len(train_1_dataset), len(train_2_dataset), len(all_train_dataset), len(test_dataset))
-  #plt.imshow(np.array(train_1_dataset[0][0]))
-  #plt.show()
-  #plt.imshow(np.array(train_2_dataset[0][0]))
-  #plt.show()
-  #plt.imshow(np.array(test_dataset[0][0]))
-  #plt.show()
+  train2_loader = torch.utils.data.DataLoader(
+    ColoredMNIST(root='./data', env='train2',
+                 transform=transforms.Compose([
+                     transforms.ToTensor(),
+                     transforms.Normalize((0.1307, 0.1307, 0.), (0.3081, 0.3081, 0.3081))
+                   ])),
+    batch_size=64, shuffle=True, **kwargs)
+
+  test_loader = torch.utils.data.DataLoader(
+    ColoredMNIST(root='./data', env='test', transform=transforms.Compose([
+      transforms.ToTensor(),
+      transforms.Normalize((0.1307, 0.1307, 0.), (0.3081, 0.3081, 0.3081))
+    ])),
+    batch_size=1000, shuffle=True, **kwargs)
+
+  model = Net().to(device)
+  optimizer = optim.Adam(model.parameters(), lr=0.01)
+
+  for epoch in range(1, 10):
+    irm_train(model, device, [train1_loader, train2_loader], optimizer, epoch)
+    print('testing on train set')
+    test(model, device, train1_loader)
+    print('testing on test set')
+    test(model, device, test_loader)
+
+
+def train_and_test_erm():
+  use_cuda = torch.cuda.is_available()
+  device = torch.device("cuda" if use_cuda else "cpu")
 
   kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
   all_train_loader = torch.utils.data.DataLoader(
@@ -235,6 +295,10 @@ def main():
     test(model, device, all_train_loader)
     print('testing on test set')
     test(model, device, test_loader)
+
+
+def main():
+  train_and_test_irm()
 
 
 if __name__ == '__main__':
