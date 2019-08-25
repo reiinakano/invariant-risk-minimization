@@ -144,9 +144,9 @@ class ColoredMNIST(datasets.VisionDataset):
 class Net(nn.Module):
   def __init__(self):
     super(Net, self).__init__()
-    self.fc1 = nn.Linear(3 * 28 * 28, 1000)
-    self.fc2 = nn.Linear(1000, 250)
-    self.fc3 = nn.Linear(250, 1)
+    self.fc1 = nn.Linear(3 * 28 * 28, 512)
+    self.fc2 = nn.Linear(512, 128)
+    self.fc3 = nn.Linear(128, 1)
 
   def forward(self, x):
     x = x.view(-1, 3 * 28 * 28)
@@ -203,7 +203,7 @@ def irm_train(model, device, train_loaders, optimizer, epoch):
 
   train_loaders = [iter(x) for x in train_loaders]
 
-  dummy_w = torch.nn.Parameter(torch.Tensor([1.0]))
+  dummy_w = torch.nn.Parameter(torch.Tensor([1.0])).to(device)
 
   batch_idx = 0
   while True:
