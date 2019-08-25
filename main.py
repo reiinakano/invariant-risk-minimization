@@ -145,14 +145,33 @@ class Net(nn.Module):
   def __init__(self):
     super(Net, self).__init__()
     self.fc1 = nn.Linear(3 * 28 * 28, 512)
-    self.fc2 = nn.Linear(512, 128)
-    self.fc3 = nn.Linear(128, 1)
+    self.fc2 = nn.Linear(512, 512)
+    self.fc3 = nn.Linear(512, 1)
 
   def forward(self, x):
     x = x.view(-1, 3 * 28 * 28)
     x = F.relu(self.fc1(x))
     x = F.relu(self.fc2(x))
     logits = self.fc3(x).flatten()
+    return logits
+
+
+class ConvNet(nn.Module):
+  def __init__(self):
+    super(ConvNet, self).__init__()
+    self.conv1 = nn.Conv2d(1, 20, 5, 1)
+    self.conv2 = nn.Conv2d(20, 50, 5, 1)
+    self.fc1 = nn.Linear(4 * 4 * 50, 500)
+    self.fc2 = nn.Linear(500, 1)
+
+  def forward(self, x):
+    x = F.relu(self.conv1(x))
+    x = F.max_pool2d(x, 2, 2)
+    x = F.relu(self.conv2(x))
+    x = F.max_pool2d(x, 2, 2)
+    x = x.view(-1, 4 * 4 * 50)
+    x = F.relu(self.fc1(x))
+    logits = self.fc2(x).flatten()
     return logits
 
 
@@ -219,7 +238,7 @@ def irm_train(model, device, train_loaders, optimizer, epoch):
       loss_erm = F.binary_cross_entropy_with_logits(output * dummy_w, target, reduction='none')
       penalty += compute_penalty(loss_erm, dummy_w)
       error += loss_erm.mean()
-    (1e-5 * error + penalty).backward()
+    (1e-5 * error + 1e2 * penalty).backward()
     optimizer.step()
     if batch_idx % 10 == 0:
       print('Train Epoch: {} [{}/{} ({:.0f}%)]\tERM loss: {:.6f}\tGrad penalty: {:.6f}'.format(
@@ -290,7 +309,7 @@ def train_and_test_erm():
     ])),
     batch_size=1000, shuffle=True, **kwargs)
 
-  model = Net().to(device)
+  model = ConvNet().to(device)
   optimizer = optim.Adam(model.parameters(), lr=0.01)
 
   for epoch in range(1, 10):
