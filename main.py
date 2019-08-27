@@ -125,7 +125,7 @@ def irm_train(model, device, train_loaders, optimizer, epoch):
   dummy_w = torch.nn.Parameter(torch.Tensor([1.0])).to(device)
 
   batch_idx = 0
-  penalty_multiplier = min(epoch//3 * 10., 300.)
+  penalty_multiplier = min(epoch//2 * 10., 300.)
   print(f'Using penalty multiplier {penalty_multiplier}')
   while True:
     optimizer.zero_grad()
