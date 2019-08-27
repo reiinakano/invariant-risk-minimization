@@ -29,7 +29,8 @@ code, which they say will be available soon.
 
 ## How to run
 
-Code depends on Pytorch.
+You can run [the provided notebook](https://colab.research.google.com/github/reiinakano/invariant-risk-minimization/blob/master/invariant_risk_minimization_colored_mnist.ipynb) in Colaboratory.
 
-Just run `main.py`. There is also an implementation of ERM in `main.py`
-if you want to run a baseline.
+Alternatively, you can run `main.py` locally. There is also an 
+implementation of ERM in `main.py` if you want to run a baseline.
+Code depends on Pytorch.
