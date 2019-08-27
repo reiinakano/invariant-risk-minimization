@@ -225,6 +225,11 @@ def irm_train(model, device, train_loaders, optimizer, epoch):
   dummy_w = torch.nn.Parameter(torch.Tensor([1.0])).to(device)
 
   batch_idx = 0
+  penalty_weight = 1.5
+  if epoch > 2:
+    penalty_weight = 100
+  elif epoch > 10:
+    penalty_weight = 200
   while True:
     optimizer.zero_grad()
     error = 0
@@ -238,7 +243,7 @@ def irm_train(model, device, train_loaders, optimizer, epoch):
       loss_erm = F.binary_cross_entropy_with_logits(output * dummy_w, target, reduction='none')
       penalty += compute_penalty(loss_erm, dummy_w)
       error += loss_erm.mean()
-    (1e-5 * error + penalty).backward()
+    (error + penalty_weight * penalty).backward()
     optimizer.step()
     if batch_idx % 2 == 0:
       print('Train Epoch: {} [{}/{} ({:.0f}%)]\tERM loss: {:.6f}\tGrad penalty: {:.6f}'.format(
