@@ -146,7 +146,7 @@ def irm_train(model, device, train_loaders, optimizer, epoch):
       print('Train Epoch: {} [{}/{} ({:.0f}%)]\tERM loss: {:.6f}\tGrad penalty: {:.6f}'.format(
         epoch, batch_idx * len(data), len(train_loaders[0].dataset),
                100. * batch_idx / len(train_loaders[0]), error.item(), penalty.item()))
-      print(output.data.cpu().numpy()[:20])
+      print('First 20 logits', output.data.cpu().numpy()[:20])
 
     batch_idx += 1
 
