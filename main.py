@@ -282,7 +282,7 @@ def train_and_test_irm():
   model = ConvNet().to(device)
   optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-  for epoch in range(1, 50):
+  for epoch in range(1, 100):
     irm_train(model, device, [train1_loader, train2_loader], optimizer, epoch)
     print('testing on train1 set')
     test(model, device, train1_loader)
