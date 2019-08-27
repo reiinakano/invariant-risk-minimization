@@ -206,7 +206,7 @@ def test(model, device, test_loader):
 
   test_loss /= len(test_loader.dataset)
 
-  print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+  print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)\n'.format(
     test_loss, correct, len(test_loader.dataset),
     100. * correct / len(test_loader.dataset)))
 
@@ -240,10 +240,11 @@ def irm_train(model, device, train_loaders, optimizer, epoch):
       error += loss_erm.mean()
     (1e-5 * error + penalty).backward()
     optimizer.step()
-    if batch_idx % 10 == 0:
+    if batch_idx % 2 == 0:
       print('Train Epoch: {} [{}/{} ({:.0f}%)]\tERM loss: {:.6f}\tGrad penalty: {:.6f}'.format(
         epoch, batch_idx * len(data), len(train_loaders[0].dataset),
                100. * batch_idx / len(train_loaders[0]), error.item(), penalty.item()))
+      print(output.data.cpu().numpy()[:20])
 
     batch_idx += 1
 
@@ -259,7 +260,7 @@ def train_and_test_irm():
                      transforms.ToTensor(),
                      transforms.Normalize((0.1307, 0.1307, 0.), (0.3081, 0.3081, 0.3081))
                    ])),
-    batch_size=64, shuffle=True, **kwargs)
+    batch_size=2000, shuffle=True, **kwargs)
 
   train2_loader = torch.utils.data.DataLoader(
     ColoredMNIST(root='./data', env='train2',
@@ -267,7 +268,7 @@ def train_and_test_irm():
                      transforms.ToTensor(),
                      transforms.Normalize((0.1307, 0.1307, 0.), (0.3081, 0.3081, 0.3081))
                    ])),
-    batch_size=64, shuffle=True, **kwargs)
+    batch_size=2000, shuffle=True, **kwargs)
 
   test_loader = torch.utils.data.DataLoader(
     ColoredMNIST(root='./data', env='test', transform=transforms.Compose([
@@ -277,9 +278,9 @@ def train_and_test_irm():
     batch_size=1000, shuffle=True, **kwargs)
 
   model = ConvNet().to(device)
-  optimizer = optim.Adam(model.parameters(), lr=0.01)
+  optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-  for epoch in range(1, 10):
+  for epoch in range(1, 50):
     irm_train(model, device, [train1_loader, train2_loader], optimizer, epoch)
     print('testing on train1 set')
     test(model, device, train1_loader)
