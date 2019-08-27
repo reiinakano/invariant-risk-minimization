@@ -31,4 +31,5 @@ code, which they say will be available soon.
 
 Code depends on Pytorch.
 
-Just run `main.py`.
+Just run `main.py`. There is also an implementation of ERM in `main.py`
+if you want to run a baseline.
