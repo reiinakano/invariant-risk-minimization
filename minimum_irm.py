@@ -1,3 +1,4 @@
+"""This is directly from https://arxiv.org/pdf/1907.02893.pdf"""
 import torch
 from torch.autograd import grad
 
