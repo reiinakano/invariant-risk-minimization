@@ -4,18 +4,17 @@ This is an attempt to reproduce the "Colored MNIST" experiments from the
 paper [Invariant Risk Minimization](https://arxiv.org/abs/1907.02893)
 by Arjovsky, et. al.
 
-After trying lots of hyperparameters and various tricks, I was able to "sort of"
-achieve the results in the paper. I say "sort of" because the training process
-is quite unstable and dependent on the random seed. A small percentage of runs may
-not converge to the paper-reported values (train accuracy > 70%, test accuracy > 60%)
-after a few tens of epochs.
+After trying lots of hyperparameters and various tricks, this implementation 
+seems to consistently achieve the paper-reported values 
+(train accuracy > 70%, test accuracy > 60%), though there might be a bit of
+instability depending on the random seed.
 
 The most common failure case is when the gradient norm penalty term is weighted
 too highly relative to the ERM term. In this case, Φ converges to a function that 
 returns the same value for all inputs. The classifier cannot recover from this point
 and the accuracy is stuck at 50% for all environments. This makes sense mathematically.
 If the intermediate representation is the same regardless of input, then *any*
-classifier is the ideal classifier, resulting in the gradient being 0.
+classifier is the ideal classifier, resulting in the penalty gradient being 0.
 
 Another failure case is when the gradient norm penalty is too low and the
 optimization essentially acts as in ERM (train accuracy > 80%, test accuracy ~10%).
