@@ -5,7 +5,7 @@ paper [Invariant Risk Minimization](https://arxiv.org/abs/1907.02893)
 by Arjovsky, et. al.
 
 After trying lots of hyperparameters and various tricks, this implementation 
-seems to consistently achieve the paper-reported values 
+seems to consistently achieve close to the paper-reported values 
 (train accuracy > 70%, test accuracy > 60%), though there might be a bit of
 instability depending on the random seed.
 
