@@ -5,9 +5,9 @@ paper [Invariant Risk Minimization](https://arxiv.org/abs/1907.02893)
 by Arjovsky, et. al.
 
 After trying lots of hyperparameters and various tricks, this implementation 
-seems to consistently achieve close to the paper-reported values 
-(train accuracy > 70%, test accuracy > 60%), though there might be a bit of
-instability depending on the random seed.
+achieves close to the paper-reported values (train accuracy > 70%, 
+test accuracy > 60%), though training can be quite unstable depending on
+the random seed.
 
 The most common failure case is when the gradient norm penalty term is weighted
 too highly relative to the ERM term. In this case, Φ converges to a function that 
