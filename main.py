@@ -105,11 +105,9 @@ def train_and_test_erm():
   model = ConvNet().to(device)
   optimizer = optim.Adam(model.parameters(), lr=0.01)
 
-  for epoch in range(1, 10):
+  for epoch in range(1, 2):
     erm_train(model, device, all_train_loader, optimizer, epoch)
-    print('testing on train set')
-    test_model(model, device, all_train_loader)
-    print('testing on test set')
+    test_model(model, device, all_train_loader, set_name='train set')
     test_model(model, device, test_loader)
 
 
