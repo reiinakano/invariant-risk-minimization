@@ -44,7 +44,7 @@ class ConvNet(nn.Module):
     return logits
 
 
-def test_model(model, device, test_loader):
+def test_model(model, device, test_loader, set_name="test set"):
   model.eval()
   test_loss = 0
   correct = 0
@@ -60,9 +60,11 @@ def test_model(model, device, test_loader):
 
   test_loss /= len(test_loader.dataset)
 
-  print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)\n'.format(
-    test_loss, correct, len(test_loader.dataset),
+  print('\nPerformance on {}: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)\n'.format(
+    set_name, test_loss, correct, len(test_loader.dataset),
     100. * correct / len(test_loader.dataset)))
+
+  return 100. * correct / len(test_loader.dataset)
 
 
 def erm_train(model, device, train_loader, optimizer, epoch):
@@ -184,12 +186,12 @@ def train_and_test_irm():
 
   for epoch in range(1, 100):
     irm_train(model, device, [train1_loader, train2_loader], optimizer, epoch)
-    print('testing on train1 set')
-    test_model(model, device, train1_loader)
-    print('testing on train2 set')
-    test_model(model, device, train2_loader)
-    print('testing on test set')
-    test_model(model, device, test_loader)
+    train1_acc = test_model(model, device, train1_loader, set_name='train1 set')
+    train2_acc = test_model(model, device, train2_loader, set_name='train2 set')
+    test_acc = test_model(model, device, test_loader)
+    if train1_acc > 70 and train2_acc > 70 and test_acc > 60:
+      print('found acceptable values. stopping training.')
+      return
 
 
 def plot_dataset_digits(dataset):
