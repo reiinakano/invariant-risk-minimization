@@ -34,8 +34,15 @@ which we can use for early stopping. The downside is we'll need a minimum of 4
 environments to perform IRM (2 train, 1 validation, 1 test).
 
 Feel free to leave an issue if you find a bug or a set of hyperparameters 
-that makes this training stable. Otherwise, let's all just wait for the authors'
-code, which they say will be available soon.
+that makes this training stable. ~~Otherwise, let's all just wait for the authors'
+code, which they say will be available soon.~~ The authors' original code is here: https://github.com/facebookresearch/InvariantRiskMinimization, 
+and apparently posted two months before I started this. 
+For some reason, I wasn't able to find this when I searched the first time.
+Looks like instead of a gradual increase of the gradient norm
+penalty step, what they do is start at 0 for a few iterations then jump straight up
+to the higher value the rest of the way. 
+I think the important thing is to make sure the training starts as ERM (0 penalty) 
+before adding in the IRM penalty term.
 
 ## How to run
 
