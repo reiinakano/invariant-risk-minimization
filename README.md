@@ -39,9 +39,9 @@ code, which they say will be available soon.~~ The authors' original code is her
 and apparently posted two months before I started this. 
 For some reason, I wasn't able to find this when I searched the first time.
 Looks like instead of a gradual increase of the gradient norm
-penalty step, what they do is start at 0 for a few iterations then jump straight up
-to the higher value the rest of the way. 
-I think the important thing is to make sure the training starts as ERM (0 penalty) 
+penalty, what they do is start at 0 for a few iterations then jump straight up
+to the higher value for the rest of training.
+I think the important thing is to make sure the training effectively starts as ERM (0 penalty) 
 before adding in the IRM penalty term.
 
 ## How to run
